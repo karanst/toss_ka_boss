@@ -244,7 +244,8 @@ class _HomePageState extends State<HomePage> {
             endTime: endingTime,
             amount: tourList[index].entryFee.toString(),
             gameId: tourList[index].id.toString(),
-            time: DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString())),
+            time: tourList[index].endDateTime.toString()
+            //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString())),
           )));
       // setSnackbar(response['msg'], context);
       // if(response['status']){
@@ -582,6 +583,7 @@ class _HomePageState extends State<HomePage> {
             shrinkWrap: true,
             itemCount: tourList.length,
             itemBuilder: (context,index){
+              print("this is lis data ${tourList[index].gameName}");
                 return    Card(
                   margin: EdgeInsets.all(getWidth(10)),
                   child: ListTile(
