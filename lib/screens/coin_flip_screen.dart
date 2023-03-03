@@ -8,6 +8,7 @@ import 'package:concoin/utils/Session.dart';
 import 'package:concoin/utils/common.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import 'package:toggle_switch/toggle_switch.dart';
@@ -69,10 +70,10 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       setState(() {
         saveStatus = true;
       });
-      if(response['error']){
+      if(!response['error']){
         setState((){
-          totalHeadUser = response['total_head_user'];
-          totalTailsUser = response['total_tail_user'];
+          totalHeadUser = response['total_user'];
+          // totalTailsUser = response['total_tail_user'];
         });
         // for (var v in response['data']) {
         //   setState(() {
@@ -298,6 +299,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
     _showFrontSide = true;
     startTimer();
     startEndTimer();
+    getWalletBalance();
     // updateUserTime();
     joinedUsers();
     print("this is end time ${widget.endTime.toString()}");
@@ -311,6 +313,44 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
 
   Timer? countdownTimer;
   Duration? myDuration;
+  String total = '0';
+
+  getWalletBalance() async {
+    userId = App.localStorage.getString("userId").toString();
+    try {
+      setState(() {
+        // walletList.clear();
+        saveStatus = false;
+      });
+      Map params = {
+        "user_id": userId.toString()
+        //curUserId.toString(),
+      };
+      Map response =
+      await apiBase.postAPICall(Uri.parse(baseUrl + "get_profile"), params);
+      setState(() {
+        saveStatus = true;
+      });
+      if (!response['error']) {
+        for (var v in response['balance']) {
+          setState(() {
+            total = response['balance'][0]['balance'];
+            // walletList.add(new WalletModel(
+            //     v['id'].toString(), v['transaction_type'].toString(), v['user_id'].toString(), v['order_id'].toString(), v['type'].toString(), v['txn_id'].toString(), v['payu_txn_id'].toString(), v['amount'].toString(),
+            //     v['status'].toString(), v['currency_code'].toString(), v['payer_email'].toString(), v['message'].toString(), v['transaction_date'].toString(), v['date_created'].toString(), v['total'].toString()));
+          });
+          print("this is wallet balance $total");
+        }
+      } else {
+        setSnackbar(response['message'], context);
+      }
+    } on TimeoutException catch (_) {
+      setSnackbar("Something Went Wrong", context);
+      setState(() {
+        saveStatus = true;
+      });
+    }
+  }
 
   startTimer(){
     timer = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -318,10 +358,12 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       joinedUsers();
     });
   }
+
   void startEndTimer() {
     countdownTimer =
         Timer.periodic(Duration(seconds: 1), (_) => setCountDown());
   }
+
   void setCountDown() {
     final reduceSecondsBy = 1;
     setState(() {
@@ -336,6 +378,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       }
     });
   }
+
   callGame() {
     setState(() {
       startTime--;
@@ -369,7 +412,9 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       _distanceFromBottom = 90;
       _textOpacity = 0.0;
       _isActive = false;
+      selectCoinFace = 2;
     });
+    getWalletBalance();
   }
 
   // void _soundOnOff() {
@@ -408,35 +453,38 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
     var h = MediaQuery.of(context).size.height;
     var w = MediaQuery.of(context).size.width;
 
-    if(secs == "00"){
-      if (selectCoinFace == 2) {
+    if(secs == "05"){
+      print("working here 1 -=======");
+      if (selectCoinFace == 0) {
         setState(() {
           selectEnable = false;
           _isActive = true;
-          _flipCoin('No Game');
-          updateUserTime("$hours:$minutes:$seconds");
+          _flipCoin('heads');
         });
       } else {
         if (selectCoinFace == 1) {
+          print("working here 2-=======");
           setState(() {
             selectEnable = false;
             _isActive = true;
-            _flipCoin('heads');
-            updateUserTime("$hours:$minutes:$seconds");
+            _flipCoin('tails');
           });
 
         } else {
+          print("working here 3 -=======");
           setState(() {
             selectEnable = false;
             _isActive = true;
             _flipCoin('No Game');
-            updateUserTime("$hours:$minutes:$seconds");
           });
 
         }
       }
       Future.delayed(Duration(seconds: 5), (){
         _restart();
+        if(selectCoinFace == 1 || selectCoinFace == 0) {
+          updateUserTime("$hours:$minutes:$seconds");
+        }
       });
     }
 
@@ -696,14 +744,23 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                           changeOnTap: false,
                           labels: ['Heads', 'Tails' , "None"],
                           onToggle: (index) {
-                            if(showOption){
-                              setState(() {
-                                selectCoinFace = index!;
-                              });
+                            if(double.parse(total) <= double.parse(widget.amount.toString())){
+                              Fluttertoast.showToast(msg: "Low balance! update your wallet to play again");
+                            }else {
+                              if (sec >= 10) {
+                                if (showOption) {
+                                  setState(() {
+                                    selectCoinFace = index!;
+                                  });
+                                }
+                                print(
+                                    "this is coin result $showOption ***** $selectCoinFace ------ $index");
+                                updateGame(selectCoinFace.toString());
+                              } else {
+                                Fluttertoast.showToast(
+                                    msg: "You are not allowed to select in last 10 secs");
+                              }
                             }
-                            print("this is coin result $showOption ***** $selectCoinFace ------ $index");
-                            updateGame(selectCoinFace.toString());
-
                           },
                         ),
                       ),
@@ -718,11 +775,11 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                       Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Row(
                               children: [
-                                Text("Total Heads Players : ", style: TextStyle(
+                                Text("Total joined players : ", style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14
                                 ),),
@@ -740,19 +797,19 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                             //       color: Colors.white,
                             //       fontSize: 16),
                             // ),
-                            Row(
-                              children: [
-                                Text("Total Tails Players : ", style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14
-                                ),),
-                                Text("$totalTailsUser", style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600
-                                ),),
-                              ],
-                            ),
+                            // Row(
+                            //   children: [
+                            //     Text("Total Tails Players : ", style: TextStyle(
+                            //         color: Colors.white,
+                            //         fontSize: 14
+                            //     ),),
+                            //     Text("$totalTailsUser", style: TextStyle(
+                            //         color: Colors.white,
+                            //         fontSize: 14,
+                            //         fontWeight: FontWeight.w600
+                            //     ),),
+                            //   ],
+                            // ),
                           ],
                         ),
                       ),
@@ -885,7 +942,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
   }
 
   void _flipCoin(String face) async {
-    print("coin flipped working here!");
+    print("coin flipped working here! ${face.toString()}");
     setState(() {
       if (_soundOn) {
         player.play('flip.wav');

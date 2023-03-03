@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:concoin/models/wallet_model.dart';
+import 'package:concoin/models/withdraw_history_model.dart';
+import 'package:concoin/screens/recent_transaction_list.dart';
 import 'package:concoin/utils/ApiBaseHelper.dart';
 import 'package:concoin/utils/Session.dart';
 import 'package:concoin/utils/colors.dart';
@@ -70,7 +73,48 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       });
     }
   }
-  
+  List walletList = [];
+  getWallet() async {
+    userId = App.localStorage.getString("userId").toString();
+    try {
+      setState(() {
+        walletList.clear();
+        saveStatus = false;
+      });
+      Map params = {
+        "user_id": userId.toString()
+        //curUserId.toString(),
+      };
+      Map response =
+      await apiBase.postAPICall(Uri.parse(baseUrl + "get_withdrawal_request"), params);
+      setState(() {
+        saveStatus = true;
+      });
+      if (!response['error']) {
+        for (var v in response['data']) {
+          setState(() {
+            // total = response['balance'].toString();
+            walletList = response['data'];
+          });
+        }
+      } else {
+        setSnackbar(response['message'], context);
+      }
+    } on TimeoutException catch (_) {
+      setSnackbar("Something Went Wrong", context);
+      setState(() {
+        saveStatus = true;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    getWallet();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -485,7 +529,11 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                   // setSnackbar("Please enter amount first!", context);
                 }
               },
-            )
+            ),
+            const SizedBox(height: 30,),
+            Container(
+                margin: EdgeInsets.symmetric(horizontal: getWidth(30)),
+                child: WithdrawTransactions(walletList,saveStatus)),
           ],
         ),
       ),

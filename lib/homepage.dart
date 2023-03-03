@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:concoin/main.dart';
+import 'package:concoin/models/game_list_model.dart';
 import 'package:concoin/models/tournament_model.dart';
 import 'package:concoin/privacy.dart';
 import 'package:concoin/profile.dart';
@@ -74,6 +75,7 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
+
   getWalletBalance() async {
     try {
       setState(() {
@@ -108,6 +110,7 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
+
   getMinBalance() async {
     try {
       setState(() {
@@ -165,6 +168,9 @@ class _HomePageState extends State<HomePage> {
         saveStatus = true;
       });
       if(response['status']){
+        // setState(() {
+        //   tourList = response['data'];
+        // });
         // setState(() {
         //   tourList = response['data'];
         // });
@@ -244,7 +250,7 @@ class _HomePageState extends State<HomePage> {
             endTime: endingTime,
             amount: tourList[index].entryFee.toString(),
             gameId: tourList[index].id.toString(),
-            time: tourList[index].endDateTime.toString()
+            time: tourList[index].endTime.toString()
             //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString())),
           )));
       // setSnackbar(response['msg'], context);
@@ -601,7 +607,7 @@ class _HomePageState extends State<HomePage> {
                     trailing: InkWell(
                       onTap: (){
 
-                        DateTime d =  DateTime.parse(tourList[index].endDateTime.toString());
+                        DateTime d =  DateTime.parse(tourList[index].endTime.toString());
                         int endingTime = d.difference(DateTime.now()).inSeconds;
                         if(double.parse(total.toString()) >= double.parse(minBalance.toString()) || double.parse(total) != 0) {
                           if(endingTime > 10) {
@@ -646,14 +652,14 @@ class _HomePageState extends State<HomePage> {
                         ),
                         text(
                             // endTme.toString(),
-                          "Ends on " + DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString())),
+                          "Ends on " + DateFormat.jms().format(DateTime.parse(tourList[index].endTime.toString())),
                           fontSize: 10.sp,
                           textColor: MyColorName.primaryDark,
                         )
                       ],
                     ),
                     onTap: (){
-                      DateTime d =  DateTime.parse(tourList[index].endDateTime.toString());
+                      DateTime d =  DateTime.parse(tourList[index].endTime.toString());
                       int endingTime = d.difference(DateTime.now()).inSeconds;
                       if(double.parse(total.toString()) >= double.parse(minBalance.toString()) || double.parse(total) != 0) {
                         if(endingTime > 10) {
@@ -664,7 +670,7 @@ class _HomePageState extends State<HomePage> {
                                 amount: tourList[index].entryFee.toString(),
                                 //DateFormat.jms().format(DateTime.parse(tourList[index].endTime.toString())),
                                 gameId: tourList[index].id.toString(),
-                                 time: tourList[index].endDateTime.toString()
+                                 time: tourList[index].endTime.toString()
                                  //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString()))
                               )));
                         }else{
