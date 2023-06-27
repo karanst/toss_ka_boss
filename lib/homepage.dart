@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:concoin/main.dart';
+import 'package:concoin/models/bet_model.dart';
 import 'package:concoin/models/game_list_model.dart';
 import 'package:concoin/models/tournament_model.dart';
 import 'package:concoin/privacy.dart';
@@ -25,10 +26,7 @@ import 'package:intl/intl.dart';
 import 'about_us.dart';
 import 'help.dart';
 
-
 class HomePage extends StatefulWidget {
-
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -39,12 +37,14 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    setState((){
+    setState(() {
       userId = App.localStorage.getString("userId").toString();
     });
     callApi();
-    print("this is account balances ${total.toString()} aand  ${minBalance.toString()}");
+    print(
+        "this is account balances ${total.toString()} and  ${minBalance.toString()}");
   }
+
   String total = "0";
   String minBalance = '0';
   bool saveStatus = true;
@@ -54,13 +54,12 @@ class _HomePageState extends State<HomePage> {
 
   getWallet() async {
     try {
-
       Map params = {
         "user_id": userId.toString()
         //curUserId.toString(),
       };
-      Map response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "get_transaction"), params);
+      Map response = await apiBase.postAPICall(
+          Uri.parse(baseUrl + "get_transaction"), params);
       if (!response['error']) {
         setState(() {
           total = response['balance'].toString();
@@ -87,7 +86,7 @@ class _HomePageState extends State<HomePage> {
         //curUserId.toString(),
       };
       Map response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "get_profile"), params);
+          await apiBase.postAPICall(Uri.parse(baseUrl + "get_profile"), params);
       setState(() {
         saveStatus = true;
       });
@@ -111,6 +110,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  List<ChoiceModel> choiceList = [];
   getMinBalance() async {
     try {
       setState(() {
@@ -120,20 +120,26 @@ class _HomePageState extends State<HomePage> {
       Map params = {
         // "user_id": curUserId.toString(),
       };
-      Map response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "get_minimum_balance"), params);
+      Map response = await apiBase.postAPICall(
+          Uri.parse(baseUrl + "get_minimum_balance"), params);
       setState(() {
         saveStatus = true;
       });
       if (!response['error']) {
-        // for (var v in response['balance']) {
+        for (var v in response['data']) {
           setState(() {
-            minBalance = response['balance'].toString();
-            // walletList.add(new WalletModel(
-            //     v['id'].toString(), v['transaction_type'].toString(), v['user_id'].toString(), v['order_id'].toString(), v['type'].toString(), v['txn_id'].toString(), v['payu_txn_id'].toString(), v['amount'].toString(),
-            //     v['status'].toString(), v['currency_code'].toString(), v['payer_email'].toString(), v['message'].toString(), v['transaction_date'].toString(), v['date_created'].toString(), v['total'].toString()));
+            choiceList.add(ChoiceModel.fromJson(v));
           });
-          print("this is minimum balance from api ${minBalance.toString()}");
+        }
+        // for (var v in response['balance']) {
+        setState(() {
+          minBalance = response['balance'].toString();
+          timerCount = int.parse(response['counter'].toString());
+          // walletList.add(new WalletModel(
+          //     v['id'].toString(), v['transaction_type'].toString(), v['user_id'].toString(), v['order_id'].toString(), v['type'].toString(), v['txn_id'].toString(), v['payu_txn_id'].toString(), v['amount'].toString(),
+          //     v['status'].toString(), v['currency_code'].toString(), v['payer_email'].toString(), v['message'].toString(), v['transaction_date'].toString(), v['date_created'].toString(), v['total'].toString()));
+        });
+        print("this is minimum balance from api ${minBalance.toString()}");
         // }
       } else {
         setSnackbar(response['message'], context);
@@ -147,6 +153,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   List<TournamentModel> tourList = [];
+  List<BetModel> betList = [];
   String endTme = '';
   String checkId = "";
   bool join = false;
@@ -162,12 +169,11 @@ class _HomePageState extends State<HomePage> {
         //curUserId.toString(),
       };
       var response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "game_list"), params);
-      setState
-        (() {
+          await apiBase.postAPICall(Uri.parse(baseUrl + "game_list"), params);
+      setState(() {
         saveStatus = true;
       });
-      if(response['status']){
+      if (response['status']) {
         // setState(() {
         //   tourList = response['data'];
         // });
@@ -179,16 +185,20 @@ class _HomePageState extends State<HomePage> {
             tourList.add(TournamentModel.fromJson(v));
           });
         }
+        for (var v in response['res']) {
+          setState(() {
+            betList.add(BetModel.fromJson(v));
+          });
+        }
         // for(var i = 0; i < tourList.length; i++){
         //   setState((){
         //     endTme =  DateFormat.jms().format(DateTime.parse(tourList[i].endTime.toString()));
         //   });
         //
         // }
-      }else{
+      } else {
         setSnackbar(response['msg'], context);
       }
-
     } on TimeoutException catch (_) {
       setSnackbar("Something Went Wrong", context);
       setState(() {
@@ -207,18 +217,15 @@ class _HomePageState extends State<HomePage> {
         //curUserId.toString(),
         "game_id": checkId.toString(),
       };
-      var response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "join_contest"),params);
+      var response = await apiBase.postAPICall(
+          Uri.parse(baseUrl + "join_contest"), params);
       setState(() {
         join = false;
       });
       Fluttertoast.showToast(msg: response['msg']);
       // setSnackbar(response['msg'], context);
-      if(response['status']){
-
-      }else{
-
-      }
+      if (response['status']) {
+      } else {}
     } on TimeoutException catch (_) {
       setSnackbar("Something Went Wrong", context);
       setState(() {
@@ -227,7 +234,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-    enterGame(String price, gameId, int endingTime, index) async {
+  enterGame(String price, gameId, int endingTime, index) async {
     try {
       setState(() {
         join = true;
@@ -236,23 +243,42 @@ class _HomePageState extends State<HomePage> {
         "user_id": userId.toString(),
         //curUserId.toString(),
         "game_id": gameId.toString(),
-        "amount" : price.toString()
+        "amount": price.toString()
       };
-      var response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "enter_game_user"),params);
+      var response = await apiBase.postAPICall(
+          Uri.parse(baseUrl + "enter_game_user"), params);
       setState(() {
         join = false;
       });
       Fluttertoast.showToast(msg: response['message']);
-      Navigator.push(
+      if (!response['error'] && response['data'] != null) {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => CoinFlipScreen(
+                      endTime: endingTime,
+                      amount: tourList[index].entryFee.toString(),
+                      gameId: tourList[index].id.toString(),
+                      time: tourList[index].endTime.toString(),
+                      bgUrl: tourList[index].background_images.toString(),
+                      betList: betList.toList(),
+                      choiceList: choiceList.toList(),
+                      joinId: response['data'].toString(),
+                      //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString())),
+                    )));
+      }
+      /*Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => CoinFlipScreen(
-            endTime: endingTime,
-            amount: tourList[index].entryFee.toString(),
-            gameId: tourList[index].id.toString(),
-            time: tourList[index].endTime.toString()
-            //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString())),
-          )));
+          MaterialPageRoute(
+              builder: (context) => CoinFlipScreen(
+                    endTime: endingTime,
+                    amount: tourList[index].entryFee.toString(),
+                    gameId: tourList[index].id.toString(),
+                    time: tourList[index].endTime.toString(),
+                    bgUrl: tourList[index].background_images.toString(),
+                    betList: betList.toList(), choiceList: choiceList.toList(),
+                    //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString())),
+                  )));*/
       // setSnackbar(response['msg'], context);
       // if(response['status']){
       //   Navigator.push(
@@ -302,6 +328,7 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
+
   Future _refresh() async {
     return callApi();
   }
@@ -317,32 +344,35 @@ class _HomePageState extends State<HomePage> {
   }
 
   final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
-  GlobalKey<RefreshIndicatorState>();
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
         color: MyColorName.appbarBg,
-    key: _refreshIndicatorKey,
-    onRefresh: _refresh,
-    child:
-
-      SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('Toss Ka Boss',style: TextStyle(
-            color: Colors.white,
-          ),),
-          iconTheme: IconThemeData(
-            color: Colors.white
-          ),
-          backgroundColor: Color(0xff004879),
-          actions: [IconButton(onPressed: (){
-            _refresh();
-          }, icon: Icon(Icons.refresh))],
-        ),
-        drawer: Drawer(
-            child: Container(
+        key: _refreshIndicatorKey,
+        onRefresh: _refresh,
+        child: SafeArea(
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(
+                'Toss Ka Boss',
+                style: TextStyle(
+                  color: Colors.white,
+                ),
+              ),
+              iconTheme: IconThemeData(color: Colors.white),
+              backgroundColor: Color(0xff004879),
+              actions: [
+                IconButton(
+                    onPressed: () {
+                      _refresh();
+                    },
+                    icon: Icon(Icons.refresh))
+              ],
+            ),
+            drawer: Drawer(
+                child: Container(
               child: Column(
                 children: [
                   Expanded(
@@ -366,7 +396,11 @@ class _HomePageState extends State<HomePage> {
                                     // SizedBox(
                                     //   width: 20,
                                     // ),
-                                    Text(name!=null&&name!=""?"Hi, $name":"Hi Guest",textAlign: TextAlign.end,
+                                    Text(
+                                      name != null && name != ""
+                                          ? "Hi, $name"
+                                          : "Hi Guest",
+                                      textAlign: TextAlign.end,
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 24,
@@ -381,21 +415,30 @@ class _HomePageState extends State<HomePage> {
                                   children: [
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(100),
-                                      child: InkWell(
-                                        onTap: (){
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const Profile()),
-                                          );
-                                        },
-                                        child:  image!= null && image!= "" ?
-                                            Image.network(image.toString(),
-                                              width: 60,
-                                              height: 50,)
-                                       : Image(image:
-                                         AssetImage('assets/profile.png'),
-                                          width: 60,
-                                          height: 50,
+                                      child: Container(
+                                        width: 60,
+                                        height: 50,
+                                        child: InkWell(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const Profile()),
+                                            );
+                                          },
+                                          child: image != null && image != ""
+                                              ? Image.network(
+                                                  image.toString(),
+                                                  width: 60,
+                                                  height: 50,
+                                                )
+                                              : Image(
+                                                  image: AssetImage(
+                                                      'assets/profile.png'),
+                                                  width: 60,
+                                                  height: 50,
+                                                ),
                                         ),
                                       ),
                                     ),
@@ -403,35 +446,42 @@ class _HomePageState extends State<HomePage> {
                                       height: 50,
                                     ),
                                     TextButton(
-                                      onPressed: (){
+                                      onPressed: () {
                                         Navigator.push(
                                           context,
-                                          MaterialPageRoute(builder: (context) =>  Profile()),
+                                          MaterialPageRoute(
+                                              builder: (context) => Profile()),
                                         );
                                       },
-                                      child: Text('Profile',style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 20,
+                                      child: Text(
+                                        'Profile',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 20,
+                                        ),
                                       ),
-
-                                      ),),
+                                    ),
                                   ],
                                 ),
-
                               ],
-                            )
-                        ),
+                            )),
                         Container(
                           child: ListTile(
                             dense: true,
-                            leading: const Icon(Icons.wallet_giftcard,color: Colors.black,),
-                            title: const Text('Wallet',style: TextStyle(color: Colors.black),),
+                            leading: const Icon(
+                              Icons.wallet_giftcard,
+                              color: Colors.black,
+                            ),
+                            title: const Text(
+                              'Wallet',
+                              style: TextStyle(color: Colors.black),
+                            ),
                             onTap: () {
-
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  Wallet()),
+                                MaterialPageRoute(
+                                    builder: (context) => Wallet()),
                               );
                             },
                           ),
@@ -444,12 +494,19 @@ class _HomePageState extends State<HomePage> {
                         Container(
                           child: ListTile(
                             dense: true,
-                            leading: const Icon(Icons.history_outlined,color: Colors.black,),
-                            title: const Text('Gaming History',style: TextStyle(color: Colors.black),),
+                            leading: const Icon(
+                              Icons.history_outlined,
+                              color: Colors.black,
+                            ),
+                            title: const Text(
+                              'Gaming History',
+                              style: TextStyle(color: Colors.black),
+                            ),
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  GamingHistory()),
+                                MaterialPageRoute(
+                                    builder: (context) => GamingHistory()),
                               );
                             },
                           ),
@@ -462,13 +519,18 @@ class _HomePageState extends State<HomePage> {
                         Container(
                           child: ListTile(
                             dense: true,
-                            leading: const Icon(Icons.help,color: Colors.black,),
-                            title: const Text('Help',style: TextStyle(color: Colors.black),),
+                            leading: const Icon(
+                              Icons.help,
+                              color: Colors.black,
+                            ),
+                            title: const Text(
+                              'Help',
+                              style: TextStyle(color: Colors.black),
+                            ),
                             onTap: () {
-
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  Help()),
+                                MaterialPageRoute(builder: (context) => Help()),
                               );
                             },
                           ),
@@ -481,13 +543,19 @@ class _HomePageState extends State<HomePage> {
                         Container(
                           child: ListTile(
                             dense: true,
-                            leading: const Icon(Icons.rule_folder,color: Colors.black,),
-                            title: const Text('Terms & Conditions',style: TextStyle(color: Colors.black),),
+                            leading: const Icon(
+                              Icons.rule_folder,
+                              color: Colors.black,
+                            ),
+                            title: const Text(
+                              'Terms & Conditions',
+                              style: TextStyle(color: Colors.black),
+                            ),
                             onTap: () {
-
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  Terms()),
+                                MaterialPageRoute(
+                                    builder: (context) => Terms()),
                               );
                             },
                           ),
@@ -500,13 +568,19 @@ class _HomePageState extends State<HomePage> {
                         Container(
                           child: ListTile(
                             dense: true,
-                            leading: const Icon(Icons.privacy_tip_outlined,color: Colors.black,),
-                            title: const Text('Privacy Policy',style: TextStyle(color: Colors.black),),
+                            leading: const Icon(
+                              Icons.privacy_tip_outlined,
+                              color: Colors.black,
+                            ),
+                            title: const Text(
+                              'Privacy Policy',
+                              style: TextStyle(color: Colors.black),
+                            ),
                             onTap: () {
-
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  Privacy()),
+                                MaterialPageRoute(
+                                    builder: (context) => Privacy()),
                               );
                             },
                           ),
@@ -519,13 +593,17 @@ class _HomePageState extends State<HomePage> {
                         Container(
                           child: ListTile(
                             dense: true,
-                            leading: const Icon(Icons.info,color: Colors.black),
-                            title: const Text('About Us',style: TextStyle(color: Colors.black),),
+                            leading:
+                                const Icon(Icons.info, color: Colors.black),
+                            title: const Text(
+                              'About Us',
+                              style: TextStyle(color: Colors.black),
+                            ),
                             onTap: () {
-
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  AboutUs()),
+                                MaterialPageRoute(
+                                    builder: (context) => AboutUs()),
                               );
                             },
                           ),
@@ -538,13 +616,19 @@ class _HomePageState extends State<HomePage> {
                         Container(
                           child: ListTile(
                             dense: true,
-                            leading: const Icon(Icons.star_rate,color: Colors.black,),
-                            title: const Text('Rate Us',style: TextStyle(color: Colors.black),),
+                            leading: const Icon(
+                              Icons.star_rate,
+                              color: Colors.black,
+                            ),
+                            title: const Text(
+                              'Rate Us',
+                              style: TextStyle(color: Colors.black),
+                            ),
                             onTap: () {
-
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  RateUs()),
+                                MaterialPageRoute(
+                                    builder: (context) => RateUs()),
                               );
                             },
                           ),
@@ -557,15 +641,20 @@ class _HomePageState extends State<HomePage> {
                         Container(
                           child: ListTile(
                             dense: true,
-                            leading: const Icon(Icons.logout,color: Colors.black),
-                            title: const Text('Logout',style: TextStyle(color: Colors.black),),
+                            leading:
+                                const Icon(Icons.logout, color: Colors.black),
+                            title: const Text(
+                              'Logout',
+                              style: TextStyle(color: Colors.black),
+                            ),
                             onTap: () {
                               setState(() {
                                 App.localStorage.setString("userId", 'null');
                               });
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  Login()),
+                                MaterialPageRoute(
+                                    builder: (context) => Login()),
                               );
                             },
                           ),
@@ -580,116 +669,187 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ],
               ),
-            )// Populate the Drawer in the next step.
-        ),
-        body: Container(
-          width: 100.w,
-          child: saveStatus?
-          ListView.builder(
-            shrinkWrap: true,
-            itemCount: tourList.length,
-            itemBuilder: (context,index){
-              print("this is lis data ${tourList[index].gameName}");
-                return    Card(
-                  margin: EdgeInsets.all(getWidth(10)),
-                  child: ListTile(
-                    title: text(
-                        tourList[index].gameName.toString(),
-                      fontSize: 10.sp,
-                      textColor: MyColorName.colorTextPrimary,
-                      fontFamily: fontBold
-                    ),
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(5.sp),
-                      child: Image.network(tourList[index].images.toString(),  width: getWidth(100),
-                        height: getHeight(80),fit: BoxFit.fill,),
-                    ),
-                    trailing: InkWell(
-                      onTap: (){
-
-                        DateTime d =  DateTime.parse(tourList[index].endTime.toString());
-                        int endingTime = d.difference(DateTime.now()).inSeconds;
-                        if(double.parse(total.toString()) >= double.parse(minBalance.toString()) || double.parse(total) != 0) {
-                          if(endingTime > 10) {
-                            enterGame(tourList[index].entryFee.toString(), tourList[index].id.toString(), endingTime, index);
-                            // Navigator.push(
-                            //     context,
-                            //     MaterialPageRoute(builder: (context) => CoinFlipScreen(
-                            //       endTime: endingTime,
-                            //       //DateFormat.jms().format(DateTime.parse(tourList[index].endTime.toString())),
-                            //       gameId: tourList[index].id.toString(),
-                            //     )));
-                          }else{
-                            Fluttertoast.showToast(msg: 'Game ended! You can\'t join');
-                          }
-                        }else{
-                          Fluttertoast.showToast(msg: "Minimum balance should be atleast ₹$minBalance in users wallet to enter!");
-                        }
+            ) // Populate the Drawer in the next step.
+                ),
+            body: Container(
+              width: 100.w,
+              child: saveStatus
+                  ? ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: tourList.length,
+                      itemBuilder: (context, index) {
+                        print("this is lis data ${tourList[index].gameName}");
+                        return Card(
+                          margin: EdgeInsets.all(getWidth(10)),
+                          child: ListTile(
+                            title: text(tourList[index].gameName.toString(),
+                                fontSize: 10.sp,
+                                textColor: MyColorName.colorTextPrimary,
+                                fontFamily: fontBold),
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(5.sp),
+                              child: Image.network(
+                                tourList[index].images.toString(),
+                                width: getWidth(100),
+                                height: getHeight(80),
+                                fit: BoxFit.fill,
+                              ),
+                            ),
+                            trailing: InkWell(
+                              onTap: () {
+                                DateTime d = DateTime.parse(
+                                    tourList[index].endTime.toString());
+                                int endingTime =
+                                    d.difference(DateTime.now()).inSeconds;
+                                if (double.parse(total.toString()) >=
+                                        double.parse(minBalance.toString()) ||
+                                    double.parse(total) != 0) {
+                                  if (endingTime > 10) {
+                                    /*Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                CoinFlipScreen(
+                                                  endTime: endingTime,
+                                                  amount: tourList[index]
+                                                      .entryFee
+                                                      .toString(),
+                                                  //DateFormat.jms().format(DateTime.parse(tourList[index].endTime.toString())),
+                                                  gameId: tourList[index]
+                                                      .id
+                                                      .toString(),
+                                                  time: tourList[index]
+                                                      .endTime
+                                                      .toString(),
+                                                  bgUrl: tourList[index]
+                                                      .background_images
+                                                      .toString(),
+                                                  betList: betList.toList(),
+                                                  choiceList:
+                                                      choiceList.toList(),
+                                                  //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString()))
+                                                )));*/
+                                    enterGame(
+                                        tourList[index].entryFee.toString(),
+                                        tourList[index].id.toString(),
+                                        endingTime,
+                                        index);
+                                    // Navigator.push(
+                                    //     context,
+                                    //     MaterialPageRoute(builder: (context) => CoinFlipScreen(
+                                    //       endTime: endingTime,
+                                    //       //DateFormat.jms().format(DateTime.parse(tourList[index].endTime.toString())),
+                                    //       gameId: tourList[index].id.toString(),
+                                    //     )));
+                                  } else {
+                                    Fluttertoast.showToast(
+                                        msg: 'Game ended! You can\'t join');
+                                  }
+                                } else {
+                                  Fluttertoast.showToast(
+                                      msg:
+                                          "Minimum balance should be at least ₹$minBalance in users wallet to enter!");
+                                }
+                              },
+                              child: Container(
+                                width: getWidth(120),
+                                height: getHeight(50),
+                                decoration: boxDecoration(
+                                  radius: 10.sp,
+                                  bgColor: MyColorName.primaryLite,
+                                ),
+                                child: Center(
+                                  child: !join ||
+                                          checkId !=
+                                              tourList[index].id.toString()
+                                      ? text(
+                                          /* "₹" +
+                                              tourList[index]
+                                                  .entryFee
+                                                  .toString(),*/
+                                          "Enter",
+                                          fontSize: 8.sp,
+                                          textColor: MyColorName.colorBg1,
+                                        )
+                                      : CircularProgressIndicator(
+                                          color: MyColorName.colorBg1,
+                                        ),
+                                ),
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                text(
+                                  "Start on " +
+                                      DateFormat.jms().format(DateTime.parse(
+                                          tourList[index]
+                                              .startDateTime
+                                              .toString())),
+                                  fontSize: 10.sp,
+                                  textColor: MyColorName.colorTextPrimary,
+                                ),
+                                text(
+                                  // endTme.toString(),
+                                  "Ends on " +
+                                      DateFormat.jms().format(DateTime.parse(
+                                          tourList[index].endTime.toString())),
+                                  fontSize: 10.sp,
+                                  textColor: MyColorName.primaryDark,
+                                )
+                              ],
+                            ),
+                            onTap: () {
+                              DateTime d = DateTime.parse(
+                                  tourList[index].endTime.toString());
+                              int endingTime =
+                                  d.difference(DateTime.now()).inSeconds;
+                              if (double.parse(total.toString()) >=
+                                      double.parse(minBalance.toString()) ||
+                                  double.parse(total) != 0) {
+                                if (endingTime > 10) {
+                                  /*Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => CoinFlipScreen(
+                                                endTime: endingTime,
+                                                amount: tourList[index]
+                                                    .entryFee
+                                                    .toString(),
+                                                //DateFormat.jms().format(DateTime.parse(tourList[index].endTime.toString())),
+                                                gameId: tourList[index]
+                                                    .id
+                                                    .toString(),
+                                                time: tourList[index]
+                                                    .endTime
+                                                    .toString(),
+                                                bgUrl: tourList[index]
+                                                    .background_images
+                                                    .toString(),
+                                                betList: betList.toList(),
+                                                choiceList: choiceList.toList(),
+                                                //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString()))
+                                              )));*/
+                                } else {
+                                  Fluttertoast.showToast(
+                                      msg: 'Game ended! You can\'t join');
+                                }
+                              } else {
+                                Fluttertoast.showToast(
+                                    msg:
+                                        "Minimum balance should be atleast ₹$minBalance in users wallet to enter!");
+                              }
+                            },
+                          ),
+                        );
                       },
-                      child: Container(
-                        width: getWidth(120),
-                        height: getHeight(50),
-                        decoration: boxDecoration(
-                          radius: 10.sp,
-                          bgColor: MyColorName.primaryLite,
-                        ),
-                        child: Center(
-                          child: !join||checkId!=tourList[index].id.toString()?text(
-                            "₹"+tourList[index].entryFee.toString(),
-                            fontSize: 8.sp,
-                            textColor: MyColorName.colorBg1,
-                          ):CircularProgressIndicator(color: MyColorName.colorBg1 ,),
-                        ),
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        text(
-                          "Start on " + DateFormat.jms().format(DateTime.parse(tourList[index].startDateTime.toString())),
-                          fontSize: 10.sp,
-                          textColor: MyColorName.colorTextPrimary,
-                        ),
-                        text(
-                            // endTme.toString(),
-                          "Ends on " + DateFormat.jms().format(DateTime.parse(tourList[index].endTime.toString())),
-                          fontSize: 10.sp,
-                          textColor: MyColorName.primaryDark,
-                        )
-                      ],
-                    ),
-                    onTap: (){
-                      DateTime d =  DateTime.parse(tourList[index].endTime.toString());
-                      int endingTime = d.difference(DateTime.now()).inSeconds;
-                      if(double.parse(total.toString()) >= double.parse(minBalance.toString()) || double.parse(total) != 0) {
-                        if(endingTime > 10) {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => CoinFlipScreen(
-                                endTime: endingTime,
-                                amount: tourList[index].entryFee.toString(),
-                                //DateFormat.jms().format(DateTime.parse(tourList[index].endTime.toString())),
-                                gameId: tourList[index].id.toString(),
-                                 time: tourList[index].endTime.toString()
-                                 //DateFormat.jms().format(DateTime.parse(tourList[index].endDateTime.toString()))
-                              )));
-                        }else{
-                          Fluttertoast.showToast(msg: 'Game ended! You can\'t join');
-                        }
-                      }else{
-                        Fluttertoast.showToast(msg: "Minimum balance should be atleast ₹$minBalance in users wallet to enter!");
-                      }
-                    },
-
-                  ),
-                );
-            },
-          )
-              :
-          Container(child: Center(child: CircularProgressIndicator(),)),
-        ),
-      ),
-    )
-    );
+                    )
+                  : Container(
+                      child: Center(
+                      child: CircularProgressIndicator(),
+                    )),
+            ),
+          ),
+        ));
   }
 }

@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:circular_countdown_timer/circular_countdown_timer.dart';
+import 'package:concoin/models/bet_model.dart';
 import 'package:concoin/screens/winning_history.dart';
 import 'package:concoin/utils/ApiBaseHelper.dart';
 import 'package:concoin/utils/Session.dart';
 import 'package:concoin/utils/common.dart';
+import 'package:concoin/utils/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -17,9 +19,21 @@ import '../utils/constant.dart';
 
 class CoinFlipScreen extends StatefulWidget {
   final int? endTime;
-  final String? gameId, amount, time;
-
-  const CoinFlipScreen({Key? key, this.endTime, this.gameId, this.amount, this.time}) : super(key: key);
+  final String? gameId, amount, time, bgUrl;
+  String joinId;
+  List<BetModel> betList;
+  List<ChoiceModel> choiceList;
+  CoinFlipScreen(
+      {Key? key,
+      this.endTime,
+      this.gameId,
+      this.amount,
+      this.time,
+      this.bgUrl,
+      required this.betList,
+      required this.choiceList,
+      required this.joinId})
+      : super(key: key);
   @override
   _CoinFlipScreenState createState() => _CoinFlipScreenState();
 }
@@ -34,7 +48,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
   final List<String> faces = ['heads', 'tails'];
   String cartoon = '';
   double _textOpacity = 0; // opacity of the result text
-  int _flip_duration = 1800;
+  int _flip_duration = 400;
 
   final player = AudioCache();
 
@@ -47,7 +61,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
 
   var selectEnable = true;
   int startTime = 0;
-  bool showOption =true;
+  bool showOption = true;
   bool saveStatus = true;
   ApiBaseHelper apiBase = new ApiBaseHelper();
   String totalHeadUser = '0';
@@ -62,16 +76,17 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       });
       Map params = {
         "game_id": widget.gameId.toString(),
-        'status':'1'
+        'status': '1'
         //curUserId.toString(),
       };
-      var response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "all_join_user"), params);
-      setState(() {
-        saveStatus = true;
-      });
-      if(!response['error']){
-        setState((){
+      var response = await apiBase.postAPICall(
+          Uri.parse(baseUrl + "all_join_user"), params);
+      if (mounted)
+        setState(() {
+          saveStatus = true;
+        });
+      if (!response['error']) {
+        setState(() {
           totalHeadUser = response['total_user'];
           // totalTailsUser = response['total_tail_user'];
         });
@@ -86,11 +101,56 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
         //   });
         //
         // }
-
-      }else{
+      } else {
         // setSnackbar(response['message'], context);
       }
+    } on TimeoutException catch (_) {
+      setSnackbar("Something Went Wrong", context);
+      setState(() {
+        saveStatus = true;
+      });
+    }
+  }
 
+  getStatus() async {
+    try {
+      userId = App.localStorage.getString("userId").toString();
+      setState(() {
+        saveStatus = false;
+      });
+      Map params = {
+        "game_id": widget.gameId.toString(),
+        "user_id": userId.toString(),
+        'status': '1'
+        //curUserId.toString(),
+      };
+      var response = await apiBase.postAPICall(
+          Uri.parse(baseUrl + "user_game_status"), params);
+      if (mounted)
+        setState(() {
+          saveStatus = true;
+        });
+      if (response['status']) {
+        setState(() {
+          winCount = response['winner_team'];
+          lossCount = response['loss_team'];
+          // totalTailsUser = response['total_tail_user'];
+        });
+
+        // for (var v in response['data']) {
+        //   setState(() {
+        //     tourList.add(TournamentModel.fromJson(v));
+        //   });
+        // }
+        // for(var i = 0; i < tourList.length; i++){
+        //   setState((){
+        //     endTme =  DateFormat.jms().format(DateTime.parse(tourList[i].endTime.toString()));
+        //   });
+        //
+        // }
+      } else {
+        // setSnackbar(response['message'], context);
+      }
     } on TimeoutException catch (_) {
       setSnackbar("Something Went Wrong", context);
       setState(() {
@@ -106,19 +166,22 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
         saveStatus = false;
       });
       Map params = {
-        'user_id':userId.toString(),
+        'user_id': userId.toString(),
         'amount': widget.amount.toString(),
         'game_time': time.toString(),
         "game_id": widget.gameId.toString(),
         //curUserId.toString(),
       };
       print("this is updated time data ******* ${params.toString()}");
-      var response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "enter_game_users"), params);
+      var response = await apiBase.postAPICall(
+          Uri.parse(baseUrl + "enter_game_users"), params);
       setState(() {
         saveStatus = true;
       });
-      if(response['error']){
+      if (!response['error'] && response['data'] != null) {
+        widget.joinId = response['data'].toString();
+      }
+      if (response['error']) {
         // setState((){
         //   totalHeadUser = response['total_head_user'];
         //   totalTailsUser = response['total_tail_user'];
@@ -134,11 +197,9 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
         //   });
         //
         // }
-
-      }else{
+      } else {
         // setSnackbar(response['message'], context);
       }
-
     } on TimeoutException catch (_) {
       setSnackbar("Something Went Wrong", context);
       setState(() {
@@ -147,12 +208,13 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
     }
   }
 
+  double amount = 0;
   updateGame(String status) async {
     userId = App.localStorage.getString("userId").toString();
     String? stat;
-    if(status == "0"){
-       stat = "1";
-    }else{
+    if (status == "0") {
+      stat = "1";
+    } else {
       stat = "2";
     }
     try {
@@ -162,16 +224,18 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       Map params = {
         "user_id": userId.toString(),
         "game_id": widget.gameId.toString(),
-        'status':'$stat'
+        'status': '$stat',
+        "amount": amount.toString(),
+        "join_id": widget.joinId,
         //curUserId.toString(),
       };
       print("this is joined game request ${params.toString()}");
-      var response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "update_gaming_user"), params);
+      var response = await apiBase.postAPICall(
+          Uri.parse(baseUrl + "update_gaming_user"), params);
       setState(() {
         saveStatus = true;
       });
-      if(response['error']){
+      if (response['error']) {
         // setState((){
         //   totalHeadUser = response['total_head_user'];
         //   totalTailsUser = response['total_tail_user'];
@@ -187,11 +251,10 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
         //   });
         //
         // }
-
-      }else{
-        setSnackbar(response['message'], context);
+      } else {
+        Fluttertoast.showToast(msg: response['message']);
+        // setSnackbar(response['message'], context);
       }
-
     } on TimeoutException catch (_) {
       setSnackbar("Something Went Wrong", context);
       setState(() {
@@ -207,23 +270,26 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       });
       Map params = {
         "game_id": widget.gameId.toString(),
-        'status':'1'
+        'status': '1'
         //curUserId.toString(),
       };
       var response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "winner_team"), params);
+          await apiBase.postAPICall(Uri.parse(baseUrl + "winner_team"), params);
       setState(() {
         saveStatus = true;
       });
       print("this is response $response");
-      if(response['status']){
+      if (response['status']) {
         setState(() {
           winningStatus = response['message'];
         });
-        Future.delayed(Duration(seconds: 2), (){
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> WinningHistory(
-            gameId: widget.gameId.toString(),
-          )));
+        Future.delayed(Duration(seconds: 2), () {
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => WinningHistory(
+                        gameId: widget.gameId.toString(),
+                      )));
         });
         // for (var v in response['data']) {
         //   setState(() {
@@ -236,11 +302,9 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
         //   });
         //
         // }
-
-      }else{
+      } else {
         setSnackbar(response['message'], context);
       }
-
     } on TimeoutException catch (_) {
       setSnackbar("Something Went Wrong", context);
       setState(() {
@@ -303,7 +367,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
     // updateUserTime();
     joinedUsers();
     print("this is end time ${widget.endTime.toString()}");
-    DateTime d =  DateTime.parse(widget.time.toString());
+    DateTime d = DateTime.parse(widget.time.toString());
     int endingTime = d.difference(DateTime.now()).inSeconds;
     myDuration = Duration(seconds: endingTime);
     setState(() {
@@ -327,7 +391,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
         //curUserId.toString(),
       };
       Map response =
-      await apiBase.postAPICall(Uri.parse(baseUrl + "get_profile"), params);
+          await apiBase.postAPICall(Uri.parse(baseUrl + "get_profile"), params);
       setState(() {
         saveStatus = true;
       });
@@ -350,10 +414,11 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
         saveStatus = true;
       });
     }
+    getStatus();
   }
 
-  startTimer(){
-    timer = Timer.periodic(Duration(seconds: 1), (timer) {
+  startTimer() {
+    timer = Timer.periodic(Duration(seconds: timerCount), (timer) {
       callGame();
       joinedUsers();
     });
@@ -361,7 +426,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
 
   void startEndTimer() {
     countdownTimer =
-        Timer.periodic(Duration(seconds: 1), (_) => setCountDown());
+        Timer.periodic(Duration(seconds: timerCount), (_) => setCountDown());
   }
 
   void setCountDown() {
@@ -373,7 +438,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       } else {
         myDuration = Duration(seconds: seconds);
       }
-      if(seconds <= 0){
+      if (seconds <= 0) {
         winnerTeam();
       }
     });
@@ -383,12 +448,12 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
     setState(() {
       startTime--;
       print(startTime);
-      if(startTime>10&&startTime<51){
+      if (startTime > 10 && startTime < 51) {
         showOption = false;
-      }else{
+      } else {
         showOption = true;
       }
-      if(startTime==0){
+      if (startTime == 0) {
         _controller.restart();
         _restart();
         startTime = 60;
@@ -397,14 +462,14 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
         showOption = true;
       }
     });
-}
+  }
 
   @override
   void dispose() {
-
-    super.dispose();
-    timer!.cancel();
+    if (timer != null) timer!.cancel();
+    if (countdownTimer != null) countdownTimer!.cancel();
     player.clearAll();
+    super.dispose();
   }
 
   void _restart() {
@@ -432,14 +497,18 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
       }
     });
   }
- Future<bool> onWill()async{
-    if(showOption){
+
+  Future<bool> onWill() async {
+    if (showOption) {
       Navigator.pop(context);
     }
     return false;
   }
+
+  String winCount = "0", lossCount = "0";
   String secs = '';
   int sec = 0;
+  int selectedIndex = 2;
   @override
   Widget build(BuildContext context) {
     String strDigits(int n) => n.toString().padLeft(2, '0');
@@ -449,11 +518,11 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
     final minutes = strDigits(myDuration!.inMinutes.remainder(60));
     secs = strDigits(myDuration!.inSeconds.remainder(60));
     final seconds = strDigits(myDuration!.inSeconds.remainder(60));
-    sec  = int.parse(seconds.toString());
+    sec = int.parse(seconds.toString());
     var h = MediaQuery.of(context).size.height;
     var w = MediaQuery.of(context).size.width;
 
-    if(secs == "05"){
+    if (secs == "05") {
       print("working here 1 -=======");
       if (selectCoinFace == 0) {
         setState(() {
@@ -469,7 +538,6 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
             _isActive = true;
             _flipCoin('tails');
           });
-
         } else {
           print("working here 3 -=======");
           setState(() {
@@ -477,17 +545,18 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
             _isActive = true;
             _flipCoin('No Game');
           });
-
         }
       }
-      Future.delayed(Duration(seconds: 5), (){
-        _restart();
-        if(selectCoinFace == 1 || selectCoinFace == 0) {
+      Future.delayed(Duration(seconds: 5), () {
+        print("restart1");
+
+        if (selectCoinFace == 1 || selectCoinFace == 0) {
+          print("restart2");
           updateUserTime("$hours:$minutes:$seconds");
         }
+        _restart();
       });
     }
-
 
     return WillPopScope(
       onWillPop: onWill,
@@ -500,7 +569,7 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
             decoration: BoxDecoration(
                 image: DecorationImage(
               fit: BoxFit.cover,
-              image: AssetImage("assets/tablescreen.png"),
+              image: NetworkImage(widget.bgUrl!),
               scale: 1,
             )),
             child: Stack(
@@ -546,7 +615,6 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                 //               color: Colors.blueAccent,
                 //             ),
                 //           )),
-
                 AnimatedPositioned(
                   //This is where the coin animation lives
                   duration: Duration(seconds: 2),
@@ -566,10 +634,9 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                     child: Text(
                       '$_face'.toUpperCase(),
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold
-                      ),
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold),
                     ),
                     duration: Duration(seconds: 1),
                     opacity: _textOpacity,
@@ -580,8 +647,8 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                   alignment: Alignment(-0.01, 0.8),
                   child: AnimatedOpacity(
                     child: Container(
-                      height: MediaQuery.of(context).size.height*.12,
-                      width: MediaQuery.of(context).size.height*.12,
+                      height: MediaQuery.of(context).size.height * .12,
+                      width: MediaQuery.of(context).size.height * .12,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           shape: CircleBorder(),
@@ -604,6 +671,22 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                     ),
                     duration: Duration(seconds: 1),
                     opacity: _textOpacity,
+                  ),
+                ),
+                Align(
+                  //This is the button to replay
+                  alignment: Alignment.topRight,
+                  child: Container(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.all(10),
+                        primary: Colors.orange, // <-- Button color
+                        onPrimary: Colors.white, // <-- Splash color
+                      ),
+                      icon: Icon(Icons.wallet),
+                      label: Text("₹${total}"),
+                      onPressed: () {},
+                    ),
                   ),
                 ),
                 // Padding(
@@ -737,16 +820,218 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                         ),
                       ),
                       Align(
+                        child: Container(
+                          padding: EdgeInsets.all(10),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      decoration: boxDecoration(
+                                        radius: 5.0,
+                                        bgColor: Colors.white,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: widget.betList.map((e) {
+                                          int index = widget.betList.indexWhere(
+                                              (element) => element.id == e.id);
+                                          return InkWell(
+                                            onTap: () {
+                                              if (double.parse(total) <=
+                                                  double.parse(
+                                                      amount.toString())) {
+                                                Fluttertoast.showToast(
+                                                    msg:
+                                                        "Low balance! update your wallet to play again");
+                                              } else {
+                                                if (sec >= 10) {
+                                                  if (showOption) {
+                                                    setState(() {
+                                                      selectCoinFace = index;
+                                                    });
+                                                  }
+                                                  print(
+                                                      "this is coin result $showOption ***** $selectCoinFace ------ $index");
+                                                  /*updateGame(selectCoinFace
+                                                      .toString());*/
+                                                } else {
+                                                  Fluttertoast.showToast(
+                                                      msg:
+                                                          "You are not allowed to select in last 10 secs");
+                                                }
+                                              }
+                                            },
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          5.0),
+                                                  image: DecorationImage(
+                                                      image: NetworkImage(
+                                                          e.image!),
+                                                      fit: BoxFit.cover)),
+                                              padding: EdgeInsets.all(10.0),
+                                              child: Text(
+                                                e.type!,
+                                                style: TextStyle(
+                                                  fontSize: 20.0,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      height: 10,
+                                    ),
+                                    Wrap(
+                                      // mainAxisSize: MainAxisSize.min,
+                                      children: widget.choiceList.map((e) {
+                                        int index = [
+                                          5,
+                                          20,
+                                          50,
+                                          100
+                                        ].indexWhere((element) => element == e);
+                                        return Container(
+                                          decoration: boxDecoration(
+                                            bgColor: Colors.white,
+                                            radius: 50.0,
+                                            showShadow: true,
+                                          ),
+                                          margin: EdgeInsets.all(5.0),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                  onPressed: () {
+                                                    if (double.parse(amount
+                                                            .toString()) >=
+                                                        double.parse(e.amount
+                                                            .toString())) {
+                                                      setState(() {
+                                                        amount -= double.parse(
+                                                            e.amount!);
+                                                      });
+                                                    }
+                                                  },
+                                                  icon: Icon(Icons.remove)),
+                                              Text(
+                                                "₹" + e.amount.toString(),
+                                                style: TextStyle(
+                                                  fontSize: 12.0,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                  onPressed: () {
+                                                    if (double.parse(total) <=
+                                                        double.parse(amount
+                                                            .toString())) {
+                                                      Fluttertoast.showToast(
+                                                          msg:
+                                                              "Low balance! update your wallet to play again");
+                                                    } else {
+                                                      if (sec >= 10) {
+                                                        setState(() {
+                                                          amount +=
+                                                              double.parse(
+                                                                  e.amount!);
+                                                        });
+                                                      } else {
+                                                        Fluttertoast.showToast(
+                                                            msg:
+                                                                "You are not allowed to select in last 10 secs");
+                                                      }
+                                                    }
+                                                  },
+                                                  icon: Icon(Icons.add)),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.all(10),
+                                ),
+                                child: Text(
+                                    "BET ₹${amount} on ${selectCoinFace != 2 ? widget.betList[selectCoinFace].type : "?"}"),
+                                onPressed: () {
+                                  if (selectCoinFace == 2) {
+                                    Fluttertoast.showToast(
+                                        msg: "Please Select Bet Option");
+                                    return;
+                                  }
+                                  if (amount == 0) {
+                                    Fluttertoast.showToast(
+                                        msg: "Please Select Amount");
+                                    return;
+                                  }
+                                  if (sec >= 10) {
+                                    updateGame(selectCoinFace.toString());
+                                  } else {
+                                    Fluttertoast.showToast(
+                                        msg:
+                                            "You are not allowed to select in last 10 secs");
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.all(10),
+                                primary: Colors.green, // <-- Button color
+                                onPrimary: Colors.white, // <-- Splash color
+                              ),
+                              child: Text("Win-${winCount}"),
+                              onPressed: () {},
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding: EdgeInsets.all(10),
+                                primary: Colors.red, // <-- Button color
+                                onPrimary: Colors.white, // <-- Splash color
+                              ),
+                              child: Text("Lose-${lossCount}"),
+                              onPressed: () {},
+                            ),
+                          ],
+                        ),
+                      ),
+                      /*Align(
                         alignment: Alignment.center,
                         child: ToggleSwitch(
                           initialLabelIndex: selectCoinFace,
-                          totalSwitches: 3,
+                          totalSwitches: 2,
                           changeOnTap: false,
-                          labels: ['Heads', 'Tails' , "None"],
+                          labels: ['Heads', 'Tails'],
                           onToggle: (index) {
-                            if(double.parse(total) <= double.parse(widget.amount.toString())){
-                              Fluttertoast.showToast(msg: "Low balance! update your wallet to play again");
-                            }else {
+                            if (double.parse(total) <=
+                                double.parse(widget.amount.toString())) {
+                              Fluttertoast.showToast(
+                                  msg:
+                                      "Low balance! update your wallet to play again");
+                            } else {
                               if (sec >= 10) {
                                 if (showOption) {
                                   setState(() {
@@ -758,18 +1043,21 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                                 updateGame(selectCoinFace.toString());
                               } else {
                                 Fluttertoast.showToast(
-                                    msg: "You are not allowed to select in last 10 secs");
+                                    msg:
+                                        "You are not allowed to select in last 10 secs");
                               }
                             }
                           },
                         ),
+                      ),*/
+                      const SizedBox(
+                        height: 10,
                       ),
-                      const SizedBox(height: 10,),
                       Text(
                         'Game ends in : $hours:$minutes:$seconds',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black,
                             fontSize: 16),
                       ),
                       Padding(
@@ -779,15 +1067,18 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                           children: [
                             Row(
                               children: [
-                                Text("Total joined players : ", style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14
-                                ),),
-                                Text("$totalHeadUser", style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                  fontWeight: FontWeight.w600
-                                ),),
+                                Text(
+                                  "Total joined players : ",
+                                  style: TextStyle(
+                                      color: Colors.black, fontSize: 14),
+                                ),
+                                Text(
+                                  "$totalHeadUser",
+                                  style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600),
+                                ),
                               ],
                             ),
                             // Text(
@@ -823,18 +1114,17 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                               width: 50,
                               decoration: BoxDecoration(
                                   border: Border.all(
-                                      color: Colors.purpleAccent,
-                                      width: 2
-                                  ),
+                                      color: Colors.purpleAccent, width: 2),
                                   color: Colors.white,
-                                  shape: BoxShape.circle
-                              ),
+                                  shape: BoxShape.circle),
                               child: Center(
-                                child: Text("00:$secs",
+                                child: Text(
+                                  "00:$secs",
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       color: Colors.purpleAccent,
-                                      fontSize: 14),),
+                                      fontSize: 14),
+                                ),
                               ),
                             )
 
@@ -926,7 +1216,6 @@ class _CoinFlipScreenState extends State<CoinFlipScreen> {
                             //     },
                             //   ),
                             // ),
-
                           ],
                         ),
                       ),

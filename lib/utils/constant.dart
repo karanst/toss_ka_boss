@@ -27,7 +27,6 @@ const spacing_large = 24.0;
 const spacing_xlarge = 32.0;
 const spacing_xxLarge = 40.0;
 
-
 final int timeOut = 50;
 const int perPage = 10;
 
@@ -36,9 +35,12 @@ bool notificationStatus = true;
 int notificationId = 1;
 final String packageName = 'com.example.concoin';
 const String languageCode = 'languageCode';
+final imageUrl = "https://developmentalphawizz.com/Gaming/";
 final String baseUrl = 'https://developmentalphawizz.com/Gaming/app/v1/api/';
-    //'https://alphawizztest.tk/Gaming/app/v1/api/';
-final String playUrl = "https://play.google.com/store/apps/details?id=$packageName";
+int timerCount = 1;
+//'https://alphawizztest.tk/Gaming/app/v1/api/';
+final String playUrl =
+    "https://play.google.com/store/apps/details?id=$packageName";
 String? curUserId;
 String? curTikId = '';
 String? fcmToken;
@@ -47,30 +49,37 @@ String? privacy = '';
 String? returned = "";
 String? delivery = "";
 String? company = "";
-String addressId="";
-String proImage="";
+String addressId = "";
+String proImage = "";
 int likeCount = 0;
-String razorPayKey="rzp_test_UUBtmcArqOLqIY";
-String razorPaySecret="NTW3MUbXOtcwUrz5a4YCshqk";
+String razorPayKey = "rzp_test_UUBtmcArqOLqIY";
+String razorPaySecret = "NTW3MUbXOtcwUrz5a4YCshqk";
 
-double getHeight(double height){
+double getHeight(double height) {
   double tempHeight = 0.0;
-  tempHeight = ((height * 100)/1280).h;
+  tempHeight = ((height * 100) / 1280).h;
   return tempHeight;
 }
-double getWidth(double width){
+
+double getWidth(double width) {
   double tempWidth = 0.0;
-  tempWidth = ((width * 100)/720).w;
+  tempWidth = ((width * 100) / 720).w;
   return tempWidth;
 }
-Widget boxWidth(double width){
-  return SizedBox(width: getWidth(width),);
+
+Widget boxWidth(double width) {
+  return SizedBox(
+    width: getWidth(width),
+  );
 }
 
-Widget boxHeight(double height){
-  return SizedBox(height: getHeight(height),);
+Widget boxHeight(double height) {
+  return SizedBox(
+    height: getHeight(height),
+  );
 }
-navigateScreen(BuildContext context,Widget widget){
+
+navigateScreen(BuildContext context, Widget widget) {
   Navigator.push(
       context,
       PageTransition(
@@ -79,7 +88,8 @@ navigateScreen(BuildContext context,Widget widget){
         duration: Duration(milliseconds: 500),
       ));
 }
-navigateBackScreen(BuildContext context,Widget widget){
+
+navigateBackScreen(BuildContext context, Widget widget) {
   Navigator.pushReplacement(
       context,
       PageTransition(
@@ -88,6 +98,7 @@ navigateBackScreen(BuildContext context,Widget widget){
         duration: Duration(milliseconds: 500),
       ));
 }
-back(BuildContext context){
+
+back(BuildContext context) {
   Navigator.pop(context);
 }

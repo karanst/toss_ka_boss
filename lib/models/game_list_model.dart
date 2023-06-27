@@ -9,26 +9,29 @@ class TournamentModel {
   String? endTime;
   String? startDateTime;
   String? dateAdded;
+  String? background_images;
   bool? isJoined;
   int? joinedUsers;
 
   TournamentModel(
       {this.id,
-        this.gameName,
-        this.images,
-        this.entryFee,
-        this.winnerPrize,
-        this.usersLimit,
-        this.timeLimit,
-        this.endTime,
-        this.startDateTime,
-        this.dateAdded,
-        this.isJoined,
-        this.joinedUsers});
+      this.gameName,
+      this.images,
+      this.entryFee,
+      this.winnerPrize,
+      this.background_images,
+      this.usersLimit,
+      this.timeLimit,
+      this.endTime,
+      this.startDateTime,
+      this.dateAdded,
+      this.isJoined,
+      this.joinedUsers});
 
   TournamentModel.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     gameName = json['game_name'];
+    background_images = json['background_images'];
     images = json['images'];
     entryFee = json['entry_fee'];
     winnerPrize = json['winner_prize'];
@@ -58,4 +61,3 @@ class TournamentModel {
     return data;
   }
 }
-
